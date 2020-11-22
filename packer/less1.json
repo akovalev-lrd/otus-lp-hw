@@ -1,0 +1,97 @@
+{
+  "builders": [
+    {
+      "boot_command": [
+        "<tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant.ks<enter><wait>"
+      ],
+      "boot_wait": "10s",
+      "disk_size": "10240",
+      "export_opts": [
+        "--manifest",
+        "--vsys",
+        "0",
+        "--description",
+        "{{user `artifact_description`}}",
+        "--version",
+        "{{user `artifact_version`}}"
+      ],
+      "headless": true,
+      "guest_additions_mode": "attach",
+      "guest_os_type": "RedHat_64",
+      "http_directory": "kickstart",
+      "iso_checksum": "sha256:c67876a5602faa17f68b40ccf2628799b87454aa67700f0f57eec15c6ccdd98c",
+      "iso_url": "https://mirror.yandex.ru/centos/8.2.2004/isos/x86_64/CentOS-8.2.2004-x86_64-boot.iso",
+      "name": "{{user `image_name`}}",
+      "output_directory": "builds",
+      "shutdown_command": "sudo -S /sbin/halt -h -p",
+      "shutdown_timeout": "5m",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_pty": true,
+      "ssh_timeout": "20m",
+      "ssh_username": "vagrant",
+      "type": "virtualbox-iso",
+      "vboxmanage": [
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--memory",
+          "4096"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--cpus",
+          "12"
+        ]
+      ],
+      "vboxmanage_post": [
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--memory",
+          "1024"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--cpus",
+          "1"
+        ]
+      ],
+      "vm_name": "less1-build-vm"
+    }
+  ],
+  "post-processors": [
+    {
+      "compression_level": "7",
+      "output": "centos-{{user `artifact_version`}}-kernel-5.9.9-x86_64-Boot.box",
+      "type": "vagrant"
+    }
+  ],
+  "provisioners": [
+    {
+      "execute_command": "{{.Vars}} sudo -S -E bash '{{.Path}}'",
+      "expect_disconnect": true,
+      "override": {
+        "{{user `image_name`}}": {
+          "scripts": [
+            "scripts/stage-1-system-update.sh",
+            "scripts/stage-2-kernel-update.sh",
+            "scripts/stage-3-reinstall-guest-additions.sh",
+            "scripts/stage-4-clean.sh"
+          ]
+        }
+      },
+      "pause_before": "20s",
+      "start_retry_timeout": "1m",
+      "type": "shell"
+    }
+  ],
+  "variables": {
+    "artifact_description": "CentOS 8.2, build 11.22.2020 with kernel 5.9.9",
+    "artifact_version": "8.2.2004",
+    "image_name": "centos-8.2"
+  }
+}
+
